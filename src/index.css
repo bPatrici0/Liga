@@ -42,3 +42,76 @@ h1 {
   -webkit-text-fill-color: transparent;
   letter-spacing: -1px;
 }
+
+.input-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 1rem;
+  justify-content: center;
+}
+
+input {
+  background: var(--card-bg);
+  border: 1px solid var(--glass-border);
+  padding: 12px 20px;
+  border-radius: 8px;
+  color: white;
+  outline: none;
+  width: 100%;
+  max-width: 400px;
+  transition: all 0.3s ease;
+}
+
+input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
+}
+
+button.btn-primary {
+  background: linear-gradient(135deg, var(primary), var(--secondary));
+  color: #000;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+button.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 242, 254, 0.4);
+}
+
+/*Lista de equipos*/
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.team-card {
+  background: var(--card-bg);
+  padding: 1.5rem;
+  border-radius: 16px;
+  border: 1px solid var(--glass-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.team-card:hover {
+  border-color: var(--accent);
+  background: rgba(255, 0, 122, 0.05);
+}
+
+.btn-delete {
+  background: none;
+  border: none;
+  color: var(--acent);
+  cursor: pointer;
+  font-weight: bold;
+  font-Size: 1.2rem;
+}
