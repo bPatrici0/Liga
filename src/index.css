@@ -19,7 +19,7 @@
 
 body {
   background: var(--bg);
-  background: radial-gradient(circle at top right, #1a1f2c, #eb0e14);
+  background: radial-gradient(circle at top right, #1a1f2c, #0b0e14);
   color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
@@ -68,7 +68,7 @@ input:focus {
 }
 
 button.btn-primary {
-  background: linear-gradient(135deg, var(primary), var(--secondary));
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
   color: #000;
   border: none;
   padding: 12px 24px;
@@ -110,7 +110,7 @@ button.btn-primary:hover {
 .btn-delete {
   background: none;
   border: none;
-  color: var(--acent);
+  color: var(--accent);
   cursor: pointer;
   font-weight: bold;
   font-Size: 1.2rem;
