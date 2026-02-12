@@ -38,6 +38,7 @@ h1 {
   font-size: 3rem;
   font-weight: 800;
   background: linear-gradient(90deg, var(--primary), var(--secondary));
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   letter-spacing: -1px;
@@ -198,16 +199,43 @@ button.btn-primary:hover {
   }
 }
 
-/* Animación de los equipos hacia el centro */
-.team-item-gathering {
-  animation: gather 0.8s ease-in forwards;
+/* Animación de Torbellino (Tornado Estelar) */
+.team-grid.gathering-active {
+  position: relative;
+  min-height: 400px;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
 }
 
-@keyframes gather {
-  to {
-    transform: translate(calc(50vw - 50%), calc(-50vh)) scale(0);
-    opacity: 0;
+.team-item-gathering {
+  position: absolute !important;
+  animation: tornado-spiral 2.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+  z-index: 100;
+  width: 200px;
+}
+
+@keyframes tornado-spiral {
+  0% {
+    transform: rotate(0deg) translate(var(--start-x), var(--start-y)) scale(1);
+    opacity: 1;
+    filter: blur(0);
   }
+
+  100% {
+    transform: rotate(1440deg) translate(0, 0) scale(0);
+    opacity: 0;
+    filter: blur(8px);
+  }
+}
+
+.vortex-absolute {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50;
 }
 
 /* Animación de salida de los resultados */
