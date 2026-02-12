@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 interface Team {
   id: string;
@@ -11,9 +11,17 @@ interface Match {
 }
 
 function App() {
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [teams, setTeams] = useState<Team[]>(() => {
+    const saved = localStorage.getItem('liga-teams');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [newTeamName, setNewTeamName] = useState('');
   const [matches, setMatches] = useState<Match[]>([]);
+
+  useEffect(() => {
+    localStorage.setItem('liga-teams', JSON.stringify(teams));
+  }, [teams]);
 
   const addTeam = (e: React.FormEvent) => {
     e.preventDefault();
