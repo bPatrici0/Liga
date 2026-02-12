@@ -155,3 +155,78 @@ button.btn-primary:hover {
   font-size: 0.8rem;
   box-shadow: 0 0 10px rgba(255, 0, 122, 0.4);
 }
+
+/* EFECTO VÓRTICE Y EXPLOSIÓN */
+.vortex-container {
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 2rem 0;
+  position: relative;
+}
+
+.vortex {
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, var(--primary), var(--accent));
+  border-radius: 50%;
+  filter: blur(20px);
+  box-shadow: 0 0 50px var(--primary);
+  animation: pulse 1s infinite alternate, rotate 3s linear infinite;
+}
+
+@keyframes pulse {
+  from {
+    transform: scale(0.8);
+    opacity: 0.6;
+  }
+
+  to {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Animación de los equipos hacia el centro */
+.team-item-gathering {
+  animation: gather 0.8s ease-in forwards;
+}
+
+@keyframes gather {
+  to {
+    transform: translate(calc(50vw - 50%), calc(-50vh)) scale(0);
+    opacity: 0;
+  }
+}
+
+/* Animación de salida de los resultados */
+.match-card-pop {
+  animation: pop-out 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes pop-out {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.hidden {
+  display: none;
+}
