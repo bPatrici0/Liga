@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react'
 
-interface Team { id: string; name: string; }
-interface Match { home: string; away: string; }
+interface Team {
+  id: string;
+  name: string;
+  players: string[];
+}
+
+interface Match {
+  home: string;
+  away: string;
+}
 
 // Estados: 'idle' | 'gathering' | 'results'
 type DrawStatus = 'idle' | 'gathering' | 'results';
@@ -9,11 +17,45 @@ type DrawStatus = 'idle' | 'gathering' | 'results';
 function App() {
   const [teams, setTeams] = useState<Team[]>(() => {
     const saved = localStorage.getItem('liga-teams');
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+    const parsed = JSON.parse(saved);
+    // Sanitización: asegurar que todos los equipos tengan el array de jugadores
+    return parsed.map((t: any) => ({
+      ...t,
+      players: t.players || []
+    }));
   });
   const [newTeamName, setNewTeamName] = useState('');
   const [matches, setMatches] = useState<Match[]>([]);
   const [status, setStatus] = useState<DrawStatus>('idle');
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [newPlayerName, setNewPlayerName] = useState('');
+
+  //funcion para guardar jugadores
+  const addPlayer = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPlayerName.trimEnd() || !editingTeam) return;
+
+    const updatedTeam = {
+      ...editingTeam,
+      players: [...editingTeam.players,
+      newPlayerName.trim()]
+    };
+
+    setTeams(teams.map(t => t.id === editingTeam.id ? updatedTeam : t));
+    setEditingTeam(updatedTeam);
+    setNewPlayerName('');
+  };
+
+  const removePlayer = (playerName: string) => {
+    if (!editingTeam) return;
+    const updatedTeam = {
+      ...editingTeam,
+      players: editingTeam.players.filter(p => p !== playerName)
+    };
+    setTeams(teams.map(t => t.id === editingTeam.id ? updatedTeam : t));
+    setEditingTeam(updatedTeam);
+  };
 
   useEffect(() => {
     localStorage.setItem('liga-teams', JSON.stringify(teams));
@@ -22,7 +64,7 @@ function App() {
   const addTeam = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTeamName.trim()) return;
-    setTeams([...teams, { id: Date.now().toString(), name: newTeamName.trim() }]);
+    setTeams([...teams, { id: Date.now().toString(), name: newTeamName.trim(), players: [] }]);
     setNewTeamName('');
     setMatches([]);
     setStatus('idle');
@@ -89,7 +131,12 @@ function App() {
                 animationDelay: `${idx * 0.1}s`
               } as React.CSSProperties : {}}
             >
-              <span>{team.name}</span>
+              <span
+                className="team-name-clickable"
+                onClick={() => setEditingTeam(team)}
+              >
+                {team.name}
+              </span>
               <button onClick={() => removeTeam(team.id)} className={`btn-delete ${status !== 'idle' ? 'hidden' : ''}`}>×</button>
             </div>
           ))}
@@ -117,9 +164,21 @@ function App() {
             <h2 style={{ textAlign: 'center', marginBottom: '1.5rem' }}>🔥 Enfrentamientos Estelares 🔥</h2>
             {matches.map((match, idx) => (
               <div key={idx} className="match-card match-card-pop" style={{ animationDelay: `${idx * 0.15}s` }}>
-                <strong style={{ color: 'var(--primary)' }}>{match.home}</strong>
+                <strong
+                  className="team-name-clickable"
+                  onClick={() => setEditingTeam(teams.find(t => t.name === match.home) || null)}
+                  style={{ color: 'var(--primary)' }}
+                >
+                  {match.home}
+                </strong>
                 <span className="vs-badge">VS</span>
-                <strong style={{ color: 'var(--secondary)' }}>{match.away}</strong>
+                <strong
+                  className="team-name-clickable"
+                  onClick={() => setEditingTeam(teams.find(t => t.name === match.away) || null)}
+                  style={{ color: 'var(--secondary)' }}
+                >
+                  {match.away}
+                </strong>
               </div>
             ))}
             <div style={{ textAlign: 'center', marginTop: '2rem' }}>
@@ -130,6 +189,47 @@ function App() {
           </div>
         )}
       </main>
+
+      {/* MODAL DE JUGADORES */}
+      {editingTeam && (
+        <div className="modal-overlay" onClick={() => setEditingTeam(null)}>
+          <div className="modal-content glass-pane" onClick={e => e.stopPropagation()} style={{ padding: '2rem' }}>
+            <h2 style={{ marginBottom: '1.5rem', color: 'var(--primary)' }}> Plantilla: {editingTeam.name}</h2>
+
+            <form onSubmit={addPlayer} className="input-group">
+              <input
+                type="text"
+                placeholder="Nombre del jugador..."
+                value={newPlayerName}
+                onChange={(e) => setNewPlayerName(e.target.value)}
+              />
+              <button type="submit" className="btn-primary">Añadir</button>
+            </form>
+
+            <ul className="player-list">
+              {(editingTeam.players || []).map((player, idx) => (
+                <li key={idx} className="player-item">
+                  <span>{player}</span>
+                  <button onClick={() => removePlayer(player)} className="btn-delete" style={{ fontSize: '1rem' }}>
+                    Eliminar
+                  </button>
+                </li>
+              ))}
+              {(!editingTeam.players || editingTeam.players.length === 0) && (
+                <p style={{ color: 'var(--text-dim)', textAlign: 'center' }}>No hay jugadores registrados.</p>
+              )}
+            </ul>
+
+            <button
+              onClick={() => setEditingTeam(null)}
+              className="btn-primary"
+              style={{ width: '100%', marginTop: '2rem', background: 'var(--text-dim)', color: 'white' }}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
