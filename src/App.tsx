@@ -37,8 +37,7 @@ function App() {
 
   const [status, setStatus] = useState<DrawStatus>('idle');
   const [newTeamName, setNewTeamName] = useState('');
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [activeTab, setActiveTab] = useState<'teams' | 'calendar'>('teams');
   const [calendarSubTab, setCalendarSubTab] = useState<'league' | 'knockout'>('league');
@@ -132,29 +131,35 @@ function App() {
   //funcion para guardar jugadores
   const addPlayer = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPlayerName.trimEnd() || !editingTeam) return;
+    if (!newPlayerName.trimEnd() || !editingTeamId) return;
+
+    const team = teams.find(t => t.id === editingTeamId);
+    if (!team) return;
 
     const updatedTeam = {
-      ...editingTeam,
-      players: [...(editingTeam.players || []),
-      newPlayerName.trim()]
+      ...team,
+      players: [...(team.players || []), newPlayerName.trim()]
     };
 
-    setTeams(teams.map(t => t.id === editingTeam.id ? updatedTeam : t));
-    setEditingTeam(updatedTeam);
+    setTeams(teams.map(t => t.id === editingTeamId ? updatedTeam : t));
     setNewPlayerName('');
   };
 
   const removePlayer = (playerName: string) => {
-    if (!editingTeam) return;
+    if (!editingTeamId) return;
+    const team = teams.find(t => t.id === editingTeamId);
+    if (!team) return;
+
     const updatedTeam = {
-      ...editingTeam,
-      players: (editingTeam.players || []).filter(p => p !== playerName)
+      ...team,
+      players: (team.players || []).filter(p => p !== playerName)
     };
-    setTeams(teams.map(t => t.id === editingTeam.id ? updatedTeam : t));
-    setEditingTeam(updatedTeam);
+    setTeams(teams.map(t => t.id === editingTeamId ? updatedTeam : t));
   };
 
+  const updateTeamStats = (id: string, field: keyof Team, value: number) => {
+    setTeams(teams.map(t => t.id === id ? { ...t, [field]: value } : t));
+  };
 
 
   const addTeam = (e: React.FormEvent) => {
@@ -169,14 +174,12 @@ function App() {
       goalsAgainst: 0
     }]);
     setNewTeamName('');
-    setMatches([]);
     setStatus('idle');
   };
 
   const removeTeam = (id: string) => {
     const updatedTeams = teams.filter(t => t.id !== id);
     setTeams(updatedTeams);
-    setMatches([]);
     setStatus('idle');
   };
 
@@ -243,7 +246,7 @@ function App() {
                 >
                   <span
                     className="team-name-clickable"
-                    onClick={() => setEditingTeam(team)}
+                    onClick={() => setEditingTeamId(team.id)}
                   >
                     {team.name}
                   </span>
@@ -311,9 +314,13 @@ function App() {
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
                         {round.map((match, mIdx) => (
                           <div key={mIdx} className="match-item">
-                            <span className="team-name-clickable" onClick={() => setEditingTeam(teams.find(t => t.name === match.home) || null)}>
+                            <strong
+                              className="team-name-clickable"
+                              onClick={() => setEditingTeamId(teams.find(t => t.name === match.home)?.id || null)}
+                              style={{ color: 'var(--primary)' }}
+                            >
                               {match.home}
-                            </span>
+                            </strong>
 
                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                               <input
@@ -331,9 +338,13 @@ function App() {
                               />
                             </div>
 
-                            <span className="team-name-clickable" onClick={() => setEditingTeam(teams.find(t => t.name === match.away) || null)}>
+                            <strong
+                              className="team-name-clickable"
+                              onClick={() => setEditingTeamId(teams.find(t => t.name === match.away)?.id || null)}
+                              style={{ color: 'var(--secondary)' }}
+                            >
                               {match.away}
-                            </span>
+                            </strong>
                           </div>
                         ))}      </div>
                     </section>
@@ -354,78 +365,104 @@ function App() {
         )}
       </main>
 
-      {/* MODAL DE JUGADORES */}
-      {editingTeam && (
-        <div className="modal-overlay" onClick={() => setEditingTeam(null)}>
-          <div className="modal-content glass-pane" onClick={e => e.stopPropagation()} style={{ padding: '2rem' }}>
-            <h2 style={{ marginBottom: '1rem', color: 'var(--primary)' }}>{editingTeam.name}</h2>
+      {/* MODAL DE JUGADORES Y ESTADÍSTICAS */}
+      {(() => {
+        const editingTeam = teams.find(t => t.id === editingTeamId);
+        if (!editingTeam) return null;
 
-            <div className="modal-tabs">
-              <div className={`modal-tab ${modalTab === 'plantilla' ? 'active' : ''}`} onClick={() => setModalTab('plantilla')}>
-                Plantilla
+        return (
+          <div className="modal-overlay" onClick={() => setEditingTeamId(null)}>
+            <div className="modal-content glass-pane" onClick={e => e.stopPropagation()} style={{ padding: '2rem' }}>
+              <h2 style={{ marginBottom: '1rem', color: 'var(--primary)' }}>{editingTeam.name}</h2>
+
+              <div className="modal-tabs">
+                <div className={`modal-tab ${modalTab === 'plantilla' ? 'active' : ''}`} onClick={() => setModalTab('plantilla')}>
+                  Plantilla
+                </div>
+                <div className={`modal-tab ${modalTab === 'stats' ? 'active' : ''}`} onClick={() => setModalTab('stats')}>
+                  Estadísticas
+                </div>
               </div>
-              <div className={`modal-tab ${modalTab === 'stats' ? 'active' : ''}`} onClick={() => setModalTab('stats')}>
-                Estadísticas
-              </div>
+
+              {modalTab === 'plantilla' ? (
+                <>
+                  <form onSubmit={addPlayer} className="input-group">
+                    <input
+                      type="text"
+                      placeholder="Nombre del jugador..."
+                      value={newPlayerName}
+                      onChange={(e) => setNewPlayerName(e.target.value)}
+                    />
+                    <button type="submit" className="btn-primary">Añadir</button>
+                  </form>
+
+                  <ul className="player-list">
+                    {(editingTeam.players || []).map((player, idx) => (
+                      <li key={idx} className="player-item">
+                        <span>{player}</span>
+                        <button onClick={() => removePlayer(player)} className="btn-delete" style={{ fontSize: '1rem' }}>
+                          Eliminar
+                        </button>
+                      </li>
+                    ))}
+                    {(!editingTeam.players || editingTeam.players.length === 0) && (
+                      <p style={{ color: 'var(--text-dim)', textAlign: 'center' }}>No hay jugadores registrados.</p>
+                    )}
+                  </ul>
+                </>
+              ) : (
+                <div className="stats-grid">
+                  <div className="stat-box">
+                    <input
+                      type="number"
+                      className="score-input"
+                      style={{ fontSize: '1.5rem', width: '60px' }}
+                      value={editingTeam.points}
+                      onChange={(e) => updateTeamStats(editingTeam.id, 'points', parseInt(e.target.value) || 0)}
+                    />
+                    <span className="stat-label">Puntos</span>
+                  </div>
+                  <div className="stat-box">
+                    <input
+                      type="number"
+                      className="score-input"
+                      style={{ fontSize: '1.5rem', width: '60px' }}
+                      value={editingTeam.goalsFor}
+                      onChange={(e) => updateTeamStats(editingTeam.id, 'goalsFor', parseInt(e.target.value) || 0)}
+                    />
+                    <span className="stat-label">Goles Favor</span>
+                  </div>
+                  <div className="stat-box">
+                    <input
+                      type="number"
+                      className="score-input"
+                      style={{ fontSize: '1.5rem', width: '60px' }}
+                      value={editingTeam.goalsAgainst}
+                      onChange={(e) => updateTeamStats(editingTeam.id, 'goalsAgainst', parseInt(e.target.value) || 0)}
+                    />
+                    <span className="stat-label">Goles Contra</span>
+                  </div>
+                  <div className="stat-box">
+                    <span className="stat-value">{editingTeam.goalsFor - editingTeam.goalsAgainst}</span>
+                    <span className="stat-label">Diferencia</span>
+                  </div>
+                  <p style={{ gridColumn: 'span 2', fontSize: '0.8rem', color: 'var(--text-dim)', textAlign: 'center', marginTop: '1rem' }}>
+                    Presiona Enter o cambia de pestaña para asegurar el guardado.
+                  </p>
+                </div>
+              )}
+
+              <button
+                onClick={() => setEditingTeamId(null)}
+                className="btn-primary"
+                style={{ width: '100%', marginTop: '2rem', background: 'var(--text-dim)', color: 'white' }}
+              >
+                Cerrar
+              </button>
             </div>
-
-            {modalTab === 'plantilla' ? (
-              <>
-                <form onSubmit={addPlayer} className="input-group">
-                  <input
-                    type="text"
-                    placeholder="Nombre del jugador..."
-                    value={newPlayerName}
-                    onChange={(e) => setNewPlayerName(e.target.value)}
-                  />
-                  <button type="submit" className="btn-primary">Añadir</button>
-                </form>
-
-                <ul className="player-list">
-                  {(editingTeam.players || []).map((player, idx) => (
-                    <li key={idx} className="player-item">
-                      <span>{player}</span>
-                      <button onClick={() => removePlayer(player)} className="btn-delete" style={{ fontSize: '1rem' }}>
-                        Eliminar
-                      </button>
-                    </li>
-                  ))}
-                  {(!editingTeam.players || editingTeam.players.length === 0) && (
-                    <p style={{ color: 'var(--text-dim)', textAlign: 'center' }}>No hay jugadores registrados.</p>
-                  )}
-                </ul>
-              </>
-            ) : (
-              <div className="stats-grid">
-                <div className="stat-box">
-                  <span className="stat-value">{editingTeam.points}</span>
-                  <span className="stat-label">Puntos</span>
-                </div>
-                <div className="stat-box">
-                  <span className="stat-value">{editingTeam.goalsFor}</span>
-                  <span className="stat-label">Goles Favor</span>
-                </div>
-                <div className="stat-box">
-                  <span className="stat-value">{editingTeam.goalsAgainst}</span>
-                  <span className="stat-label">Goles Contra</span>
-                </div>
-                <div className="stat-box">
-                  <span className="stat-value">{editingTeam.goalsFor - editingTeam.goalsAgainst}</span>
-                  <span className="stat-label">Diferencia</span>
-                </div>
-              </div>
-            )}
-
-            <button
-              onClick={() => setEditingTeam(null)}
-              className="btn-primary"
-              style={{ width: '100%', marginTop: '2rem', background: 'var(--text-dim)', color: 'white' }}
-            >
-              Cerrar
-            </button>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   )
 }
