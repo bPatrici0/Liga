@@ -320,3 +320,133 @@ button.btn-primary:hover {
     opacity: 1;
   }
 }
+
+/* SUB-PESTAÑAS DENTRO DEL MODAL */
+.modal-tabs {
+  display: flex;
+  gap: 1rem;
+  border-bottom: 1px solid var(--glass-border);
+  margin-bottom: 1.5rem;
+}
+
+.modal-tab {
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--text-dim);
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.modal-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.stat-box {
+  background: var(--glass);
+  padding: 1rem;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid var(--glass-border);
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--secondary);
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+/* INPUTS DE RESULTADOS EN CALENDARIO */
+.score-input {
+  width: 40px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+  text-align: center;
+  padding: 4px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+
+/* NAVEGACIÓN POR PESTAÑAS */
+.tabs-nav {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.tab-btn {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  color: var(--text-dim);
+  padding: 10px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+  background: var(--card-bg);
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
+}
+
+.tab-btn:hover:not(.active) {
+  background: var(--glass-border);
+  color: var(--text);
+}
+
+/* VISTA CALENDARIO */
+.calendar-view {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.round-section {
+  position: relative;
+  padding-left: 2rem;
+  border-left: 2px solid var(--glass-border);
+}
+
+.round-title {
+  color: var(--secondary);
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.match-item {
+  background: var(--glass);
+  padding: 1rem;
+  border-radius: 12px;
+  margin-bottom: 0.8rem;
+  border: 1px solid var(--glass-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.3s ease;
+}
+
+.match-item:hover {
+  transform: translateX(10px);
+  border-color: var(--primary);
+}
