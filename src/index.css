@@ -1,11 +1,14 @@
 :root {
   --primary: #00f2fe;
   --secondary: #4facfe;
-  --bg: #0b0e14;
-  --card-bg: rgba(255, 255, 255, 0.05);
+  --bg: #05070a;
+  --card-bg: rgba(255, 255, 255, 0.03);
   --text: #ffffff;
   --text-dim: #a0a0a0;
   --accent: #ff007a;
+  --neon-green: #00ff7a;
+  --neon-cyan: #00f2fe;
+  --neon-magenta: #ff007a;
   --glass: rgba(255, 255, 255, 0.01);
   --glass-border: rgba(255, 255, 255, 0.1);
 }
@@ -35,13 +38,14 @@ body {
 }
 
 h1 {
-  font-size: 3rem;
+  font-size: 3.5rem;
   font-weight: 800;
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  letter-spacing: -1px;
+  letter-spacing: -2px;
+  filter: drop-shadow(0 0 10px rgba(0, 242, 254, 0.5));
 }
 
 .input-group {
@@ -69,19 +73,20 @@ input:focus {
 }
 
 button.btn-primary {
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  background: linear-gradient(135deg, var(--neon-cyan), var(--secondary));
   color: #000;
   border: none;
   padding: 12px 24px;
   border-radius: 12px;
-  font-weight: bold;
+  font-weight: 800;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
 }
 
 button.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 242, 254, 0.4);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 25px rgba(0, 242, 254, 0.6);
 }
 
 /*Lista de equipos*/
@@ -101,11 +106,14 @@ button.btn-primary:hover {
   justify-content: space-between;
   align-items: center;
   transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
 }
 
 .team-card:hover {
-  border-color: var(--accent);
-  background: rgba(255, 0, 122, 0.05);
+  border-color: var(--neon-cyan);
+  background: rgba(0, 242, 254, 0.05);
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.2);
+  transform: translateY(-5px);
 }
 
 .btn-delete {
@@ -280,9 +288,9 @@ button.btn-primary:hover {
   max-width: 500px;
   max-height: 80vh;
   overflow-y: auto;
-  background: rgba(20, 25, 35, 0.95) !important;
-  /* Fondo más sólido para legibilidad */
-  box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+  background: rgba(5, 7, 10, 0.98) !important;
+  border: 1px solid var(--neon-cyan);
+  box-shadow: 0 0 40px rgba(0, 242, 254, 0.3);
 }
 
 /* NOMBRES CLICKABLES */
@@ -402,10 +410,11 @@ button.btn-primary:hover {
 }
 
 .tab-btn.active {
-  background: var(--card-bg);
-  border-color: var(--primary);
-  color: var(--primary);
-  box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
+  background: rgba(0, 242, 254, 0.1);
+  border-color: var(--neon-cyan);
+  color: var(--neon-cyan);
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
+  text-shadow: 0 0 8px var(--neon-cyan);
 }
 
 .tab-btn:hover:not(.active) {
@@ -512,6 +521,76 @@ button.btn-primary:hover {
   border-color: rgba(255, 255, 255, 0.05);
 }
 
+/* TABLA DE POSICIONES NEÓN */
+.standings-table-container {
+  overflow-x: auto;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-border);
+}
+
+.standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text);
+}
+
+.standings-table th,
+.standings-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.standings-table th {
+  background: rgba(0, 242, 254, 0.1);
+  color: var(--neon-cyan);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+}
+
+.standings-table tr:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.pts-cell {
+  color: var(--neon-green);
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(0, 255, 122, 0.3);
+}
+
+.leader-row {
+  background: rgba(0, 255, 122, 0.05) !important;
+  border-left: 4px solid var(--neon-green);
+}
+
+.leader-row td:first-child {
+  color: var(--neon-green);
+  text-shadow: 0 0 10px var(--neon-green);
+}
+
+.team-selector.disabled {
+  pointer-events: none;
+  opacity: 0.2;
+}
+
+.bracket-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-btn.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  filter: grayscale(1);
+  border-style: dashed;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* VS BADGE ESTILO FINAL */
 .vs-badge {
   background: var(--accent);
   padding: 4px 12px;

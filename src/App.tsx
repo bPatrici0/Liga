@@ -41,6 +41,12 @@ function App() {
   const [activeTab, setActiveTab] = useState<'teams' | 'calendar'>('teams');
   const [calendarSubTab, setCalendarSubTab] = useState<'league' | 'knockout'>('league');
   const [modalTab, setModalTab] = useState<'plantilla' | 'stats'>('plantilla');
+  const [showStandings, setShowStandings] = useState(false);
+  const [knockoutActiveRound, setKnockoutActiveRound] = useState(0);
+  const [knockoutBrackets, setKnockoutBrackets] = useState<Match[][]>(() => {
+    const saved = localStorage.getItem('liga-knockout');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   // Persistencia del torneo
   const [tournament, setTournament] = useState<Match[][]>(() => {
@@ -58,6 +64,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('liga-tournament', JSON.stringify(tournament));
   }, [tournament]);
+
+  useEffect(() => {
+    localStorage.setItem('liga-knockout', JSON.stringify(knockoutBrackets));
+  }, [knockoutBrackets]);
 
   // Función para establecer ganador por clic
   const setWinner = (roundIdx: number, matchIdx: number, winner: 'home' | 'away') => {
@@ -124,7 +134,84 @@ function App() {
       schedule.push(roundMatches);
     }
     setTournament(schedule);
+    recalculateStats(schedule); // Asegurar reset de puntos al iniciar nuevo torneo
     setStatus('results');
+  };
+
+  // Función para reiniciar todos los resultados del torneo actual
+  const resetTournamentResults = () => {
+    const freshTournament = tournament.map(round =>
+      round.map(match => ({ ...match, winner: null }))
+    );
+    setTournament(freshTournament);
+    setKnockoutBrackets([]);
+    setKnockoutActiveRound(0);
+    recalculateStats(freshTournament);
+  };
+
+  const isRoundComplete = (rIdx: number) => {
+    if (rIdx < 0) return true;
+    if (!knockoutBrackets[rIdx]) return false;
+    return knockoutBrackets[rIdx].every(m => m.winner !== null && m.home !== '?' && m.away !== '?');
+  };
+
+  // Función para iniciar Fases Finales (Top 8 o Top 4)
+  const startKnockout = () => {
+    const sorted = [...teams].sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst));
+
+    // Determinamos si hacemos Cuartos (8 equipos) o Semis (4 equipos)
+    const numTeams = teams.length >= 8 ? 8 : (teams.length >= 4 ? 4 : 2);
+    const topTeams = sorted.slice(0, numTeams);
+
+    const firstRound: Match[] = [];
+    for (let i = 0; i < numTeams / 2; i++) {
+      firstRound.push({
+        home: topTeams[i].name,
+        away: topTeams[numTeams - 1 - i].name,
+        winner: null
+      });
+    }
+
+    // Inicializamos las rondas siguientes vacías
+    const brackets: Match[][] = [firstRound];
+    let nextRoundSize = numTeams / 4;
+    while (nextRoundSize >= 1) {
+      brackets.push(Array(nextRoundSize).fill(null).map(() => ({ home: '?', away: '?', winner: null })));
+      nextRoundSize /= 2;
+    }
+
+    setKnockoutBrackets(brackets);
+    setCalendarSubTab('knockout');
+    setShowStandings(false);
+  };
+
+  // Función para establecer ganador en eliminatorias y avanzar
+  const setKnockoutWinner = (roundIdx: number, matchIdx: number, winner: 'home' | 'away') => {
+    const newBrackets = [...knockoutBrackets];
+    const match = newBrackets[roundIdx][matchIdx];
+
+    if (match.winner === winner) {
+      match.winner = null;
+    } else {
+      match.winner = winner;
+      // Avanzar al equipo a la siguiente ronda si existe
+      if (roundIdx + 1 < newBrackets.length) {
+        const nextMatchIdx = Math.floor(matchIdx / 2);
+        const side = matchIdx % 2 === 0 ? 'home' : 'away';
+        const teamName = winner === 'home' ? match.home : match.away;
+        newBrackets[roundIdx + 1][nextMatchIdx][side] = teamName;
+      }
+
+      // Proactividad: Si se completa la ronda actual, sugerir/saltar a la siguiente
+      if (newBrackets[roundIdx].every(m => m.winner !== null)) {
+        setTimeout(() => {
+          if (roundIdx + 1 < newBrackets.length) {
+            setKnockoutActiveRound(roundIdx + 1);
+          }
+        }, 600);
+      }
+    }
+    setKnockoutBrackets(newBrackets);
   };
 
   //funcion para guardar jugadores
@@ -302,9 +389,17 @@ function App() {
               >
                 ⚔️ Fases Finales
               </button>
+              <button
+                className="btn-primary"
+                onClick={() => setShowStandings(true)}
+                style={{ marginLeft: 'auto', fontSize: '0.8rem', padding: '8px 16px', background: 'var(--neon-magenta)', color: 'white' }}
+              >
+                📊 Ver Tabla de Posiciones
+              </button>
             </div>
 
             {calendarSubTab === 'league' ? (
+              // ... vista de liga existente ...
               <div style={{ marginTop: '1rem' }}>
                 {tournament.length > 0 ? (
                   tournament.map((round, roundIdx) => (
@@ -341,9 +436,68 @@ function App() {
                 )}
               </div>
             ) : (
-              <div style={{ textAlign: 'center', padding: '3rem' }}>
-                <h3 style={{ color: 'var(--text-dim)' }}>Próximamente...</h3>
-                <p>Las eliminatorias se activarán cuando termine la fase de liga.</p>
+              <div className="knockout-view" style={{ marginTop: '1rem' }}>
+                {knockoutBrackets.length > 0 ? (
+                  <>
+                    <div className="tabs-nav" style={{ justifyContent: 'center', marginBottom: '2rem', gap: '0.5rem' }}>
+                      {knockoutBrackets.map((_, rIdx) => {
+                        const isUnlocked = isRoundComplete(rIdx - 1);
+                        const label = rIdx === 0 && knockoutBrackets.length === 3 ? 'Cuartos' :
+                          rIdx === knockoutBrackets.length - 2 ? 'Semifinales' :
+                            rIdx === knockoutBrackets.length - 1 ? 'Gran Final' : `Fase ${rIdx + 1}`;
+
+                        return (
+                          <button
+                            key={rIdx}
+                            className={`tab-btn ${knockoutActiveRound === rIdx ? 'active' : ''} ${!isUnlocked ? 'disabled' : ''}`}
+                            onClick={() => isUnlocked && setKnockoutActiveRound(rIdx)}
+                            style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+                          >
+                            {isUnlocked ? label : '🔒 Bloqueado'}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="bracket-active-round">
+                      {knockoutBrackets[knockoutActiveRound] && (
+                        <div className="bracket-column animate-fade-in">
+                          <h3 className="round-title" style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                            {knockoutActiveRound === 0 && knockoutBrackets.length === 3 ? 'Cuartos de Final' :
+                              knockoutActiveRound === knockoutBrackets.length - 2 ? 'Semifinales' :
+                                knockoutActiveRound === knockoutBrackets.length - 1 ? 'La Gran Final' : `Eliminatoria - Fase ${knockoutActiveRound + 1}`}
+                          </h3>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                            {knockoutBrackets[knockoutActiveRound].map((match, mIdx) => (
+                              <div key={mIdx} className={`match-item ${match.winner ? 'has-result' : ''}`}>
+                                <div
+                                  className={`team-selector ${match.winner === 'home' ? 'winner' : match.winner === 'away' ? 'loser' : ''} ${match.home === '?' ? 'disabled' : ''}`}
+                                  onClick={() => match.home !== '?' && setKnockoutWinner(knockoutActiveRound, mIdx, 'home')}
+                                >
+                                  <strong className="team-name-clickable">{match.home}</strong>
+                                  {match.winner === 'home' && <span className="winner-check">✓</span>}
+                                </div>
+                                <span className="vs-badge">VS</span>
+                                <div
+                                  className={`team-selector ${match.winner === 'away' ? 'winner' : match.winner === 'home' ? 'loser' : ''} ${match.away === '?' ? 'disabled' : ''}`}
+                                  onClick={() => match.away !== '?' && setKnockoutWinner(knockoutActiveRound, mIdx, 'away')}
+                                >
+                                  <strong className="team-name-clickable">{match.away}</strong>
+                                  {match.winner === 'away' && <span className="winner-check">✓</span>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '3rem' }}>
+                    <h3 style={{ color: 'var(--text-dim)' }}>¡Califica a los mejores!</h3>
+                    <p>Completa la liga y usa el botón en la Tabla de Posiciones para iniciar las eliminatorias.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -448,6 +602,68 @@ function App() {
           </div>
         );
       })()}
+
+      {/* MODAL DE TABLA DE POSICIONES */}
+      {showStandings && (
+        <div className="modal-overlay" onClick={() => setShowStandings(false)}>
+          <div className="modal-content glass-pane" onClick={e => e.stopPropagation()} style={{ padding: '2rem', maxWidth: '600px' }}>
+            <h2 style={{ marginBottom: '1.5rem', color: 'var(--neon-cyan)', textAlign: 'center' }}>🏆 Tabla de Posiciones 🏆</h2>
+
+            <div className="standings-table-container">
+              <table className="standings-table">
+                <thead>
+                  <tr>
+                    <th>Pos</th>
+                    <th style={{ textAlign: 'left' }}>Equipo</th>
+                    <th>PTS</th>
+                    <th>GF</th>
+                    <th>GC</th>
+                    <th>DG</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...teams]
+                    .sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst))
+                    .map((team, idx) => (
+                      <tr key={team.id} className={idx === 0 ? 'leader-row' : ''}>
+                        <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{idx + 1}</td>
+                        <td style={{ fontWeight: '600' }}>{team.name}</td>
+                        <td className="pts-cell">{team.points}</td>
+                        <td>{team.goalsFor}</td>
+                        <td>{team.goalsAgainst}</td>
+                        <td>{team.goalsFor - team.goalsAgainst}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+              <button
+                onClick={resetTournamentResults}
+                className="btn-primary"
+                style={{ flex: 1, background: 'var(--text-dim)', color: 'white' }}
+              >
+                🔄 Reiniciar Tabla
+              </button>
+              <button
+                onClick={startKnockout}
+                className="btn-primary"
+                style={{ flex: 1, background: 'var(--neon-magenta)', color: 'white', border: '1px solid #fff' }}
+              >
+                🎯 Iniciar Fases Finales
+              </button>
+              <button
+                onClick={() => setShowStandings(false)}
+                className="btn-primary"
+                style={{ flex: 1, background: 'var(--text-dim)', color: 'white' }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
