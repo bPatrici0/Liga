@@ -436,17 +436,70 @@ button.btn-primary:hover {
 
 .match-item {
   background: var(--glass);
-  padding: 1rem;
+  padding: 0.5rem 1rem;
   border-radius: 12px;
   margin-bottom: 0.8rem;
   border: 1px solid var(--glass-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
+  overflow: hidden;
 }
 
 .match-item:hover {
-  transform: translateX(10px);
   border-color: var(--primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.team-selector {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.team-selector:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.team-selector.winner {
+  background: rgba(0, 255, 122, 0.15) !important;
+  color: #00ff7a !important;
+  border: 1px solid #00ff7a;
+  box-shadow: 0 0 15px rgba(0, 255, 122, 0.3);
+}
+
+.team-selector.loser {
+  opacity: 0.5;
+  filter: grayscale(0.8);
+  color: #ff4d4d !important;
+  background: rgba(255, 77, 77, 0.05);
+  border: 1px solid transparent;
+}
+
+.winner-check {
+  font-size: 1.2rem;
+  font-weight: bold;
+  animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes pop-in {
+  0% {
+    transform: scale(0);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.has-result {
+  border-color: rgba(255, 255, 255, 0.2);
 }

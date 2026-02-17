@@ -12,8 +12,7 @@ interface Team {
 interface Match {
   home: string;
   away: string;
-  homeScore?: number;
-  awayScore?: number;
+  winner?: 'home' | 'away' | null;
 }
 
 // Estados: 'idle' | 'gathering' | 'results'
@@ -60,14 +59,17 @@ function App() {
     localStorage.setItem('liga-tournament', JSON.stringify(tournament));
   }, [tournament]);
 
-  // Función para actualizar resultados y recalcular estadísticas
-  const updateScore = (roundIdx: number, matchIdx: number, score: number, side: 'home' | 'away') => {
-    if (isNaN(score)) score = 0;
+  // Función para establecer ganador por clic
+  const setWinner = (roundIdx: number, matchIdx: number, winner: 'home' | 'away') => {
     const newTournament = [...tournament];
     const match = newTournament[roundIdx][matchIdx];
 
-    if (side === 'home') match.homeScore = score;
-    else match.awayScore = score;
+    // Si ya era el ganador, lo quitamos (cancelar)
+    if (match.winner === winner) {
+      match.winner = null;
+    } else {
+      match.winner = winner;
+    }
 
     setTournament(newTournament);
     recalculateStats(newTournament);
@@ -78,19 +80,16 @@ function App() {
 
     currentTournament.forEach(round => {
       round.forEach(match => {
-        if (match.homeScore !== undefined && match.awayScore !== undefined) {
+        if (match.winner) {
           const home = newTeams.find(t => t.name === match.home);
           const away = newTeams.find(t => t.name === match.away);
 
           if (home && away) {
-            home.goalsFor += match.homeScore;
-            home.goalsAgainst += match.awayScore;
-            away.goalsFor += match.awayScore;
-            away.goalsAgainst += match.homeScore;
-
-            if (match.homeScore > match.awayScore) home.points += 3;
-            else if (match.homeScore < match.awayScore) away.points += 3;
-            else { home.points += 1; away.points += 1; }
+            if (match.winner === 'home') {
+              home.points += 3;
+            } else if (match.winner === 'away') {
+              away.points += 3;
+            }
           }
         }
       });
@@ -313,38 +312,24 @@ function App() {
                       <h3 className="round-title">Jornada {roundIdx + 1}</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
                         {round.map((match, mIdx) => (
-                          <div key={mIdx} className="match-item">
-                            <strong
-                              className="team-name-clickable"
-                              onClick={() => setEditingTeamId(teams.find(t => t.name === match.home)?.id || null)}
-                              style={{ color: 'var(--primary)' }}
+                          <div key={mIdx} className={`match-item ${match.winner ? 'has-result' : ''}`}>
+                            <div
+                              className={`team-selector ${match.winner === 'home' ? 'winner' : match.winner === 'away' ? 'loser' : ''}`}
+                              onClick={() => setWinner(roundIdx, mIdx, 'home')}
                             >
-                              {match.home}
-                            </strong>
-
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                              <input
-                                type="number"
-                                className="score-input"
-                                value={match.homeScore ?? ''}
-                                onChange={(e) => updateScore(roundIdx, mIdx, parseInt(e.target.value), 'home')}
-                              />
-                              <span className="vs-badge">VS</span>
-                              <input
-                                type="number"
-                                className="score-input"
-                                value={match.awayScore ?? ''}
-                                onChange={(e) => updateScore(roundIdx, mIdx, parseInt(e.target.value), 'away')}
-                              />
+                              <strong className="team-name-clickable">{match.home}</strong>
+                              {match.winner === 'home' && <span className="winner-check">✓</span>}
                             </div>
 
-                            <strong
-                              className="team-name-clickable"
-                              onClick={() => setEditingTeamId(teams.find(t => t.name === match.away)?.id || null)}
-                              style={{ color: 'var(--secondary)' }}
+                            <span className="vs-badge">VS</span>
+
+                            <div
+                              className={`team-selector ${match.winner === 'away' ? 'winner' : match.winner === 'home' ? 'loser' : ''}`}
+                              onClick={() => setWinner(roundIdx, mIdx, 'away')}
                             >
-                              {match.away}
-                            </strong>
+                              <strong className="team-name-clickable">{match.away}</strong>
+                              {match.winner === 'away' && <span className="winner-check">✓</span>}
+                            </div>
                           </div>
                         ))}      </div>
                     </section>
