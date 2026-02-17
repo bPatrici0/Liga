@@ -138,15 +138,18 @@ function App() {
     setStatus('results');
   };
 
-  // Función para reiniciar todos los resultados del torneo actual
-  const resetTournamentResults = () => {
-    const freshTournament = tournament.map(round =>
-      round.map(match => ({ ...match, winner: null }))
-    );
-    setTournament(freshTournament);
+  // Función para reiniciar TODO el sistema (Sorteo, Resultados, Estadísticas)
+  const fullReset = () => {
+    setTournament([]);
     setKnockoutBrackets([]);
     setKnockoutActiveRound(0);
-    recalculateStats(freshTournament);
+    setStatus('idle');
+    setTeams(prev => prev.map(t => ({
+      ...t,
+      points: 0,
+      goalsFor: 0,
+      goalsAgainst: 0
+    })));
   };
 
   const isRoundComplete = (rIdx: number) => {
@@ -365,7 +368,7 @@ function App() {
                   Ve a la pestaña de Calendario para ver todas las jornadas.
                 </p>
                 <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-                  <button onClick={() => setStatus('idle')} className="btn-primary" style={{ background: 'var(--text-dim)', color: 'white' }}>
+                  <button onClick={fullReset} className="btn-primary" style={{ background: 'var(--text-dim)', color: 'white' }}>
                     REINICIAR SORTEO
                   </button>
                 </div>
@@ -640,11 +643,11 @@ function App() {
 
             <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
               <button
-                onClick={resetTournamentResults}
+                onClick={fullReset}
                 className="btn-primary"
-                style={{ flex: 1, background: 'var(--text-dim)', color: 'white' }}
+                style={{ flex: 1, background: 'var(--neon-magenta)', color: 'white' }}
               >
-                🔄 Reiniciar Tabla
+                🔄 Reinicio Total
               </button>
               <button
                 onClick={startKnockout}
