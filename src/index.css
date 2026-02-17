@@ -457,49 +457,68 @@ button.btn-primary:hover {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
+  gap: 12px;
+  padding: 12px;
   cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 10px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
-}
-
-.team-selector:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.team-selector.winner {
-  background: rgba(0, 255, 122, 0.15) !important;
-  color: #00ff7a !important;
-  border: 1px solid #00ff7a;
-  box-shadow: 0 0 15px rgba(0, 255, 122, 0.3);
-}
-
-.team-selector.loser {
-  opacity: 0.5;
-  filter: grayscale(0.8);
-  color: #ff4d4d !important;
-  background: rgba(255, 77, 77, 0.05);
+  background: rgba(255, 255, 255, 0.02);
   border: 1px solid transparent;
 }
 
+.team-selector:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.team-selector.winner {
+  background: rgba(0, 255, 122, 0.1) !important;
+  color: #00ff7a !important;
+  border: 1px solid #00ff7a;
+  box-shadow: 0 0 20px rgba(0, 255, 122, 0.4), inset 0 0 10px rgba(0, 255, 122, 0.2);
+  transform: scale(1.05);
+  z-index: 2;
+}
+
+.team-selector.loser {
+  opacity: 0.4;
+  filter: blur(0.5px);
+  color: #ff007a !important;
+  background: rgba(255, 0, 122, 0.05);
+  border: 1px solid rgba(255, 0, 122, 0.2);
+}
+
 .winner-check {
-  font-size: 1.2rem;
-  font-weight: bold;
-  animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #00ff7a;
+  text-shadow: 0 0 10px #00ff7a, 0 0 20px #00ff7a;
+  animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 @keyframes pop-in {
   0% {
-    transform: scale(0);
+    transform: scale(0) rotate(-45deg);
+    opacity: 0;
   }
 
   100% {
-    transform: scale(1);
+    transform: scale(1) rotate(0);
+    opacity: 1;
   }
 }
 
 .has-result {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.vs-badge {
+  background: var(--accent);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.8rem;
+  box-shadow: 0 0 15px var(--accent);
+  z-index: 1;
+  flex-shrink: 0;
 }
