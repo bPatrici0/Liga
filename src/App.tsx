@@ -86,18 +86,37 @@ function App() {
 
   const recalculateStats = (currentTournament: Match[][]) => {
     const newTeams = teams.map(t => ({ ...t, points: 0, goalsFor: 0, goalsAgainst: 0 }));
+
     currentTournament.forEach(round => {
       round.forEach(match => {
-        if (match.winner) {
-          const home = newTeams.find(t => t.name === match.home);
-          const away = newTeams.find(t => t.name === match.away);
-          if (home && away) {
+        const home = newTeams.find(t => t.name === match.home);
+        const away = newTeams.find(t => t.name === match.away);
+
+        if (home && away) {
+          // Contar goles reales del partido basándose en scorers
+          let homeGoals = 0;
+          let awayGoals = 0;
+
+          if (match.scorers) {
+            match.scorers.forEach(pId => {
+              if (home.players.some(p => p.id === pId)) homeGoals++;
+              else if (away.players.some(p => p.id === pId)) awayGoals++;
+            });
+          }
+
+          home.goalsFor += homeGoals;
+          home.goalsAgainst += awayGoals;
+          away.goalsFor += awayGoals;
+          away.goalsAgainst += homeGoals;
+
+          if (match.winner) {
             if (match.winner === 'home') home.points += 3;
             else if (match.winner === 'away') away.points += 3;
           }
         }
       });
     });
+
     setTeams(newTeams);
     updateGlobalScorers(currentTournament);
   };
@@ -284,6 +303,21 @@ function App() {
     }, 3200);
   };
 
+  const calculateMatchScore = (match: Match) => {
+    const homeTeam = teams.find(t => t.name === match.home || t.id === match.home);
+    const awayTeam = teams.find(t => t.name === match.away || t.id === match.away);
+    let homeGoals = 0;
+    let awayGoals = 0;
+
+    if (match.scorers && homeTeam && awayTeam) {
+      match.scorers.forEach(playerId => {
+        if (homeTeam.players.some(p => p.id === playerId)) homeGoals++;
+        else if (awayTeam.players.some(p => p.id === playerId)) awayGoals++;
+      });
+    }
+    return { homeGoals, awayGoals };
+  };
+
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       <header style={{ marginBottom: '3rem', textAlign: 'center' }}>
@@ -400,22 +434,25 @@ function App() {
                     <section key={roundIdx} className="round-section" style={{ marginBottom: '3rem' }}>
                       <h3 className="round-title">Jornada {roundIdx + 1}</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
-                        {round.map((match, mIdx) => (
-                          <div key={mIdx} className={`match-item ${match.winner ? 'has-result' : ''}`}>
-                            <div className={`team-selector ${match.winner === 'home' ? 'winner' : match.winner === 'away' ? 'loser' : ''}`} onClick={() => setWinner(roundIdx, mIdx, 'home')}>
-                              <strong className="team-name-clickable">{match.home}</strong>
-                              {match.winner === 'home' && <span className="winner-check">✓</span>}
+                        {round.map((match, mIdx) => {
+                          const { homeGoals, awayGoals } = calculateMatchScore(match);
+                          return (
+                            <div key={mIdx} className={`match-item ${match.winner ? 'has-result' : ''}`}>
+                              <div className={`team-selector ${match.winner === 'home' ? 'winner' : match.winner === 'away' ? 'loser' : ''}`} onClick={() => setWinner(roundIdx, mIdx, 'home')}>
+                                <strong className="team-name-clickable">{match.home}</strong>
+                                {match.winner === 'home' && <span className="winner-check">✓</span>}
+                              </div>
+                              <span className="vs-badge">{match.winner ? `${homeGoals} - ${awayGoals}` : 'VS'}</span>
+                              <div className={`team-selector ${match.winner === 'away' ? 'winner' : match.winner === 'home' ? 'loser' : ''}`} onClick={() => setWinner(roundIdx, mIdx, 'away')}>
+                                <strong className="team-name-clickable">{match.away}</strong>
+                                {match.winner === 'away' && <span className="winner-check">✓</span>}
+                              </div>
+                              {match.winner && (
+                                <button onClick={(e) => { e.stopPropagation(); setScoringMatch({ roundIdx, matchIdx: mIdx, type: 'league' }); }} className="btn-scorer-trigger" title="Registrar Goleadores">⚽ {(match.scorers || []).length}</button>
+                              )}
                             </div>
-                            <span className="vs-badge">VS</span>
-                            <div className={`team-selector ${match.winner === 'away' ? 'winner' : match.winner === 'home' ? 'loser' : ''}`} onClick={() => setWinner(roundIdx, mIdx, 'away')}>
-                              <strong className="team-name-clickable">{match.away}</strong>
-                              {match.winner === 'away' && <span className="winner-check">✓</span>}
-                            </div>
-                            {match.winner && (
-                              <button onClick={(e) => { e.stopPropagation(); setScoringMatch({ roundIdx, matchIdx: mIdx, type: 'league' }); }} className="btn-scorer-trigger" title="Registrar Goleadores">⚽ {(match.scorers || []).length}</button>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </section>
                   ))
@@ -441,22 +478,31 @@ function App() {
                             {knockoutActiveRound === 0 && knockoutBrackets.length === 3 ? 'Cuartos de Final' : knockoutActiveRound === knockoutBrackets.length - 2 ? 'Semifinales' : knockoutActiveRound === knockoutBrackets.length - 1 ? 'La Gran Final' : `Eliminatoria - Fase ${knockoutActiveRound + 1}`}
                           </h3>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-                            {knockoutBrackets[knockoutActiveRound].map((match, mIdx) => (
-                              <div key={mIdx} className={`match-item ${match.winner ? 'has-result' : ''}`}>
-                                <div className={`team-selector ${match.winner === 'home' ? 'winner' : match.winner === 'away' ? 'loser' : ''} ${match.home === '?' ? 'disabled' : ''}`} onClick={() => match.home !== '?' && setKnockoutWinner(knockoutActiveRound, mIdx, 'home')}>
-                                  <strong className="team-name-clickable">{match.home}</strong>
-                                  {match.winner === 'home' && <span className="winner-check">✓</span>}
+                            {knockoutBrackets[knockoutActiveRound].map((match, mIdx) => {
+                              const { homeGoals, awayGoals } = calculateMatchScore(match);
+                              return (
+                                <div key={mIdx} className={`match-item ${match.winner ? 'has-result' : ''}`}>
+                                  <div
+                                    className={`team-selector ${match.winner === 'home' ? 'winner' : match.winner === 'away' ? 'loser' : ''} ${match.home === '?' ? 'disabled' : ''}`}
+                                    onClick={() => match.home !== '?' && setKnockoutWinner(knockoutActiveRound, mIdx, 'home')}
+                                  >
+                                    <strong className="team-name-clickable">{match.home}</strong>
+                                    {match.winner === 'home' && <span className="winner-check">✓</span>}
+                                  </div>
+                                  <span className="vs-badge">{match.winner ? `${homeGoals} - ${awayGoals}` : 'VS'}</span>
+                                  <div
+                                    className={`team-selector ${match.winner === 'away' ? 'winner' : match.winner === 'home' ? 'loser' : ''} ${match.away === '?' ? 'disabled' : ''}`}
+                                    onClick={() => match.away !== '?' && setKnockoutWinner(knockoutActiveRound, mIdx, 'away')}
+                                  >
+                                    <strong className="team-name-clickable">{match.away}</strong>
+                                    {match.winner === 'away' && <span className="winner-check">✓</span>}
+                                  </div>
+                                  {match.winner && (
+                                    <button onClick={(e) => { e.stopPropagation(); setScoringMatch({ roundIdx: knockoutActiveRound, matchIdx: mIdx, type: 'knockout' }); }} className="btn-scorer-trigger" title="Registrar Goleadores">⚽ {(match.scorers || []).length}</button>
+                                  )}
                                 </div>
-                                <span className="vs-badge">VS</span>
-                                <div className={`team-selector ${match.winner === 'away' ? 'winner' : match.winner === 'home' ? 'loser' : ''} ${match.away === '?' ? 'disabled' : ''}`} onClick={() => match.away !== '?' && setKnockoutWinner(knockoutActiveRound, mIdx, 'away')}>
-                                  <strong className="team-name-clickable">{match.away}</strong>
-                                  {match.winner === 'away' && <span className="winner-check">✓</span>}
-                                </div>
-                                {match.winner && (
-                                  <button onClick={(e) => { e.stopPropagation(); setScoringMatch({ roundIdx: knockoutActiveRound, matchIdx: mIdx, type: 'knockout' }); }} className="btn-scorer-trigger" title="Registrar Goleadores">⚽ {(match.scorers || []).length}</button>
-                                )}
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -521,23 +567,9 @@ function App() {
                       {side.team?.players.map(p => (
                         <div key={p.id} className="player-scorer-row">
                           <button onClick={() => addScorerToMatch(p.id)} className="btn-player-scorer">{p.name}</button>
-                          <button onClick={() => removePlayer(side.team!.id, p.id)} className="btn-mini-delete">🗑️</button>
                         </div>
                       ))}
                     </div>
-                    {side.team && (
-                      <div className="quick-add-scorer" style={{ marginTop: '1rem', display: 'flex', gap: '4px' }}>
-                        <input type="text" placeholder="Añadir..." className="score-input" onKeyDown={(e) => {
-                          if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                            const val = e.currentTarget.value.trim();
-                            const newP: Player = { id: crypto.randomUUID(), name: val, goals: 0 };
-                            setTeams(prev => prev.map(t => t.id === side.team!.id ? { ...t, players: [...t.players, newP] } : t));
-                            addScorerToMatch(newP.id);
-                            e.currentTarget.value = '';
-                          }
-                        }} />
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
