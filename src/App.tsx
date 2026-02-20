@@ -4,12 +4,14 @@ interface Player {
   id: string;
   name: string;
   goals: number;
+  mvps: number; // Veces que fue el mejor tras un partido
 }
 
 interface Team {
   id: string;
   name: string;
   players: Player[];
+  logoUrl?: string; // URL del escudo generado por IA
   points: number;
   goalsFor: number;
   goalsAgainst: number;
@@ -20,6 +22,7 @@ interface Match {
   away: string;
   winner?: 'home' | 'away' | null;
   scorers?: string[]; // IDs de jugadores que anotaron
+  mvp?: string; // ID del jugador MVP del partido
 }
 
 type DrawStatus = 'idle' | 'gathering' | 'results';
@@ -41,6 +44,13 @@ function App() {
       }));
     } catch (e) { return []; }
   });
+
+  const [theme, setTheme] = useState<string>(() => localStorage.getItem('liga-theme') || 'cyberpunk');
+
+  useEffect(() => {
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('liga-theme', theme);
+  }, [theme]);
 
   const [status, setStatus] = useState<DrawStatus>('idle');
   const [newTeamName, setNewTeamName] = useState('');
@@ -125,7 +135,7 @@ function App() {
     setTeams(prevTeams => {
       const resetTeams = prevTeams.map(t => ({
         ...t,
-        players: t.players.map(p => ({ ...p, goals: 0 }))
+        players: t.players.map(p => ({ ...p, goals: 0, mvps: 0 }))
       }));
       currentTournament.flat().forEach(match => {
         if (match.scorers) {
@@ -134,6 +144,12 @@ function App() {
               const player = team.players.find(p => p.id === playerId);
               if (player) player.goals += 1;
             });
+          });
+        }
+        if (match.mvp) {
+          resetTeams.forEach(team => {
+            const player = team.players.find(p => p.id === match.mvp);
+            if (player) player.mvps += 1;
           });
         }
       });
@@ -175,7 +191,7 @@ function App() {
     setStatus('idle');
     setTeams(prev => prev.map(t => ({
       ...t,
-      players: [],
+      players: t.players.map(p => ({ ...p, goals: 0, mvps: 0 })),
       points: 0,
       goalsFor: 0,
       goalsAgainst: 0
@@ -283,6 +299,7 @@ function App() {
       id: Date.now().toString(),
       name: newTeamName.trim(),
       players: [],
+      logoUrl: undefined,
       points: 0,
       goalsFor: 0,
       goalsAgainst: 0
@@ -318,9 +335,33 @@ function App() {
     return { homeGoals, awayGoals };
   };
 
+  const setMatchMVP = (playerId: string) => {
+    if (!scoringMatch) return;
+    const { roundIdx, matchIdx, type } = scoringMatch;
+    if (type === 'league') {
+      const newTournament = [...tournament];
+      const match = newTournament[roundIdx][matchIdx];
+      match.mvp = match.mvp === playerId ? undefined : playerId;
+      setTournament(newTournament);
+      updateGlobalScorers(newTournament);
+    } else {
+      const newBrackets = [...knockoutBrackets];
+      const match = newBrackets[roundIdx][matchIdx];
+      match.mvp = match.mvp === playerId ? undefined : playerId;
+      setKnockoutBrackets(newBrackets);
+      updateGlobalScorers([...tournament, ...knockoutBrackets]);
+    }
+  };
+
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <header style={{ marginBottom: '3rem', textAlign: 'center' }}>
+      <header style={{ marginBottom: '3rem', textAlign: 'center', position: 'relative' }}>
+        <div className="theme-selector-container">
+          <button className={`theme-btn ${theme === 'cyberpunk' ? 'active' : ''}`} onClick={() => setTheme('cyberpunk')} title="Cyberpunk">Original</button>
+          <button className={`theme-btn ${theme === 'matrix' ? 'active' : ''}`} onClick={() => setTheme('matrix')} title="Matrix">Matrix</button>
+          <button className={`theme-btn ${theme === 'synthwave' ? 'active' : ''}`} onClick={() => setTheme('synthwave')} title="Synthwave">Synthwave</button>
+          <button className={`theme-btn ${theme === 'deepspace' ? 'active' : ''}`} onClick={() => setTheme('deepspace')} title="Deep Space">Deep Space</button>
+        </div>
         <h1>League of Legends</h1>
         <p style={{ color: 'var(--text-dim)' }}>Gestiona tus equipos y crea sorteos épicos</p>
       </header>
@@ -349,7 +390,14 @@ function App() {
                   {status === 'gathering' && <div className="vortex-absolute"><div className="vortex"></div></div>}
                   {teams.map((team, idx) => (
                     <div key={team.id} className={`team-card ${status === 'gathering' ? 'team-item-gathering' : ''}`} style={status === 'gathering' ? { '--start-x': `${(idx % 3 - 1) * 300}px`, '--start-y': `${(Math.floor(idx / 3) - 1) * 200}px`, animationDelay: `${idx * 0.1}s` } as React.CSSProperties : {}}>
-                      <span className="team-name-clickable" onClick={() => { setSelectedManageTeamId(team.id); setTeamSubTab('players'); }}>{team.name}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {team.logoUrl ? (
+                          <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--neon-cyan)', background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', boxShadow: '0 0 10px rgba(0, 242, 254, 0.2)' }}>{team.logoUrl}</div>
+                        ) : (
+                          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: '2px dashed var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>🛡️</div>
+                        )}
+                        <span className="team-name-clickable" onClick={() => { setSelectedManageTeamId(team.id); setTeamSubTab('players'); }}>{team.name}</span>
+                      </div>
                       <button onClick={() => removeTeam(team.id)} className={`btn-delete ${status !== 'idle' ? 'hidden' : ''}`}>×</button>
                     </div>
                   ))}
@@ -377,8 +425,13 @@ function App() {
                   <label style={{ display: 'block', marginBottom: '1rem', color: 'var(--text-dim)', fontSize: '0.9rem' }}>Selecciona Equipo a Gestionar:</label>
                   <div className="team-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
                     {teams.map(team => (
-                      <div key={team.id} className={`team-card ${selectedManageTeamId === team.id ? 'active' : ''}`} onClick={() => setSelectedManageTeamId(team.id)} style={{ padding: '1rem', cursor: 'pointer', borderColor: selectedManageTeamId === team.id ? 'var(--neon-cyan)' : 'transparent' }}>
-                        <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{team.name}</span>
+                      <div key={team.id} className={`team-card ${selectedManageTeamId === team.id ? 'active' : ''}`} onClick={() => setSelectedManageTeamId(team.id)} style={{ padding: '0.8rem 1rem', cursor: 'pointer', borderColor: selectedManageTeamId === team.id ? 'var(--neon-cyan)' : 'transparent', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {team.logoUrl ? (
+                          <div style={{ width: '30px', height: '30px', borderRadius: '50%', border: '1px solid var(--neon-cyan)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>{team.logoUrl}</div>
+                        ) : (
+                          <span style={{ fontSize: '1.2rem' }}>🛡️</span>
+                        )}
+                        <span style={{ fontWeight: 'bold', fontSize: '0.9rem', flex: 1 }}>{team.name}</span>
                         {selectedManageTeamId === team.id && <span style={{ color: 'var(--neon-cyan)' }}>●</span>}
                       </div>
                     ))}
@@ -390,7 +443,35 @@ function App() {
                   if (!team) return null;
                   return (
                     <div className="glass-pane animate-fade-in" style={{ padding: '2rem', border: '1px solid var(--neon-cyan)', boxShadow: '0 0 20px rgba(0, 242, 254, 0.1)' }}>
-                      <h2 style={{ color: 'var(--neon-cyan)', marginBottom: '1.5rem' }}>Plantilla: {team.name}</h2>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                        <div>
+                          <h2 style={{ color: 'var(--neon-cyan)', marginBottom: '0.5rem' }}>Plantilla: {team.name}</h2>
+                          <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>Asigna un escudo y gestiona los jugadores de este equipo.</p>
+                        </div>
+
+                        <div className="escudo-picker" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', background: 'rgba(0,0,0,0.2)', padding: '8px', borderRadius: '12px', border: '1px solid var(--glass-border)', maxWidth: '240px' }}>
+                          {['🐉', '💀', '⚡', '🦅', '🦁', '🐺', '🔥', '💎', '🛡️'].map(emoji => (
+                            <button
+                              key={emoji}
+                              onClick={() => setTeams(prev => prev.map(t => t.id === team.id ? { ...t, logoUrl: emoji } : t))}
+                              style={{
+                                background: team.logoUrl === emoji ? 'rgba(255,255,255,0.1)' : 'transparent',
+                                border: team.logoUrl === emoji ? '1px solid var(--neon-cyan)' : '1px solid transparent',
+                                width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer', fontSize: '1.2rem',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s',
+                                filter: team.logoUrl === emoji ? 'drop-shadow(0 0 5px var(--neon-cyan))' : 'none'
+                              }}
+                              title="Seleccionar este escudo"
+                            >{emoji}</button>
+                          ))}
+                          <button
+                            onClick={() => setTeams(prev => prev.map(t => t.id === team.id ? { ...t, logoUrl: undefined } : t))}
+                            style={{ background: 'transparent', border: '1px solid var(--glass-border)', width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-dim)' }}
+                            title="Quitar escudo"
+                          >❌</button>
+                        </div>
+                      </div>
+
                       <form onSubmit={(e) => {
                         e.preventDefault();
                         if (!newPlayerName.trim()) return;
@@ -524,7 +605,19 @@ function App() {
                 <thead><tr><th>Pos</th><th style={{ textAlign: 'left' }}>Equipo</th><th>PTS</th><th>GF</th><th>GC</th><th>DG</th></tr></thead>
                 <tbody>
                   {[...teams].sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst)).map((team, idx) => (
-                    <tr key={team.id} className={idx === 0 ? 'leader-row' : ''}><td>{idx + 1}</td><td>{team.name}</td><td>{team.points}</td><td>{team.goalsFor}</td><td>{team.goalsAgainst}</td><td>{team.goalsFor - team.goalsAgainst}</td></tr>
+                    <tr key={team.id} className={idx === 0 ? 'leader-row' : ''}>
+                      <td>{idx + 1}</td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '1.1rem', minWidth: '24px', textAlign: 'center' }}>{team.logoUrl || '🛡️'}</span>
+                          {team.name}
+                        </div>
+                      </td>
+                      <td>{team.points}</td>
+                      <td>{team.goalsFor}</td>
+                      <td>{team.goalsAgainst}</td>
+                      <td>{team.goalsFor - team.goalsAgainst}</td>
+                    </tr>
                   ))}
                 </tbody>
               </table>
@@ -534,14 +627,63 @@ function App() {
               <table className="standings-table">
                 <thead><tr><th>Pos</th><th style={{ textAlign: 'left' }}>Jugador</th><th style={{ textAlign: 'left' }}>Equipo</th><th>Goles</th></tr></thead>
                 <tbody>
-                  {teams.flatMap(t => t.players.map(p => ({ ...p, teamName: t.name }))).sort((a, b) => b.goals - a.goals).filter(p => p.goals > 0).slice(0, 10).map((player, idx) => (
-                    <tr key={player.id} className={idx === 0 ? 'leader-row' : ''}><td>{idx + 1}</td><td>{player.name}</td><td>{player.teamName}</td><td>⚽ {player.goals}</td></tr>
+                  {teams.flatMap(t => t.players.map(p => ({ ...p, teamName: t.name, teamLogo: t.logoUrl }))).sort((a, b) => b.goals - a.goals).filter(p => p.goals > 0).slice(0, 10).map((player, idx) => (
+                    <tr key={player.id} className={idx === 0 ? 'leader-row' : ''}>
+                      <td>{idx + 1}</td>
+                      <td>{player.name}</td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>{player.teamLogo || '🛡️'}</span> {player.teamName}
+                        </div>
+                      </td>
+                      <td>⚽ {player.goals}</td>
+                    </tr>
                   ))}
                   {teams.every(t => t.players.every(p => p.goals === 0)) && <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem' }}>Aún no hay goles registrados.</td></tr>}
                 </tbody>
               </table>
             </div>
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '2.5rem', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: '280px' }}>
+                <h2 style={{ marginBottom: '1.2rem', color: 'var(--neon-magenta)', textAlign: 'center', fontSize: '1.4rem' }}>🧤 Guante de Oro 🧤</h2>
+                <div className="standings-table-container">
+                  <table className="standings-table">
+                    <thead><tr><th>Pos</th><th style={{ textAlign: 'left' }}>Equipo</th><th>GC</th></tr></thead>
+                    <tbody>
+                      {[...teams].sort((a, b) => a.goalsAgainst - b.goalsAgainst || b.points - a.points).slice(0, 5).map((team, idx) => (
+                        <tr key={team.id} className={idx === 0 ? 'leader-row' : ''}>
+                          <td>{idx + 1}</td>
+                          <td><div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span>{team.logoUrl || '🛡️'}</span> {team.name}</div></td>
+                          <td>{team.goalsAgainst}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div style={{ flex: 1, minWidth: '280px' }}>
+                <h2 style={{ marginBottom: '1.2rem', color: 'var(--neon-cyan)', textAlign: 'center', fontSize: '1.4rem' }}>🌟 MVP Ranking 🌟</h2>
+                <div className="standings-table-container">
+                  <table className="standings-table">
+                    <thead><tr><th>Pos</th><th style={{ textAlign: 'left' }}>Jugador</th><th>MVPs</th></tr></thead>
+                    <tbody>
+                      {teams.flatMap(t => t.players).sort((a, b) => b.mvps - a.mvps).filter(p => (p.mvps || 0) > 0).slice(0, 5).map((player, idx) => (
+                        <tr key={player.id} className={idx === 0 ? 'leader-row' : ''}>
+                          <td>{idx + 1}</td>
+                          <td>{player.name}</td>
+                          <td>🌟 {player.mvps}</td>
+                        </tr>
+                      ))}
+                      {teams.every(t => t.players.every(p => (p.mvps || 0) === 0)) && <tr><td colSpan={3} style={{ textAlign: 'center', padding: '1rem', fontSize: '0.8rem' }}>No hay MVPs aún.</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '2.5rem' }} className="no-print">
+              <button onClick={() => window.print()} className="btn-primary" style={{ flex: 1, background: 'var(--neon-green)', color: '#000' }}>📸 Guardar Reporte</button>
               <button onClick={fullReset} className="btn-primary" style={{ flex: 1, background: 'var(--neon-magenta)' }}>🔄 Reinicio</button>
               <button onClick={startKnockout} className="btn-primary" style={{ flex: 1, background: 'var(--neon-magenta)' }}>🎯 Eliminatorias</button>
               <button onClick={() => setShowStandings(false)} className="btn-primary" style={{ flex: 1, background: 'var(--text-dim)' }}>Cerrar</button>
@@ -566,7 +708,12 @@ function App() {
                     <div className="scorers-select-grid">
                       {side.team?.players.map(p => (
                         <div key={p.id} className="player-scorer-row">
-                          <button onClick={() => addScorerToMatch(p.id)} className="btn-player-scorer">{p.name}</button>
+                          <button onClick={() => addScorerToMatch(p.id)} className="btn-player-scorer" style={{ flex: 1 }}>{p.name}</button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setMatchMVP(p.id); }}
+                            className={`btn-mvp-trigger ${match.mvp === p.id ? 'active' : ''}`}
+                            title="Marcar como MVP del partido"
+                          >🌟</button>
                         </div>
                       ))}
                     </div>

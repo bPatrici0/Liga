@@ -2,6 +2,7 @@
   --primary: #00f2fe;
   --secondary: #4facfe;
   --bg: #05070a;
+  --bg-grad: #1a1f2c, #0b0e14;
   --card-bg: rgba(255, 255, 255, 0.03);
   --text: #ffffff;
   --text-dim: #a0a0a0;
@@ -10,6 +11,43 @@
   --neon-cyan: #00f2fe;
   --neon-magenta: #ff007a;
   --glass: rgba(255, 255, 255, 0.01);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='matrix'] {
+  --primary: #00ff41;
+  --secondary: #008f11;
+  --bg: #0d0208;
+  --bg-grad: #001100, #0d0208;
+  --accent: #00ff41;
+  --neon-green: #00ff41;
+  --neon-cyan: #00ff41;
+  --neon-magenta: #004400;
+  --glass-border: rgba(0, 255, 65, 0.2);
+  --primary-glow: rgba(0, 255, 65, 0.4);
+}
+
+[data-theme='synthwave'] {
+  --primary: #ff00ff;
+  --secondary: #7000ff;
+  --bg: #1a0633;
+  --bg-grad: #2d0b5a, #1a0633;
+  --accent: #fee440;
+  --neon-green: #00f2fe;
+  --neon-cyan: #ff00ff;
+  --neon-magenta: #fee440;
+  --glass-border: rgba(255, 0, 255, 0.2);
+}
+
+[data-theme='deepspace'] {
+  --primary: #4facfe;
+  --secondary: #00f2fe;
+  --bg: #020408;
+  --bg-grad: #0a192f, #020408;
+  --accent: #ffffff;
+  --neon-green: #00d2ff;
+  --neon-cyan: #ffffff;
+  --neon-magenta: #130f40;
   --glass-border: rgba(255, 255, 255, 0.1);
 }
 
@@ -22,10 +60,51 @@
 
 body {
   background: var(--bg);
-  background: radial-gradient(circle at top right, #1a1f2c, #0b0e14);
+  background: radial-gradient(circle at top right, var(--bg-grad));
   color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
+  transition: background 0.5s ease;
+}
+
+.theme-selector-container {
+  position: absolute;
+  top: -20px;
+  right: 0;
+  display: flex;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 6px 10px;
+  border-radius: 30px;
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(5px);
+  z-index: 100;
+}
+
+.theme-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.theme-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.theme-btn.active {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 15px var(--primary);
+  text-shadow: 0 0 5px var(--primary);
 }
 
 .glass-pane {
@@ -694,6 +773,32 @@ button.btn-primary:hover {
   color: white;
 }
 
+.btn-mvp-trigger {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  color: #555;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  filter: grayscale(1);
+}
+
+.btn-mvp-trigger:hover {
+  background: rgba(255, 215, 0, 0.1);
+  filter: grayscale(0.5);
+}
+
+.btn-mvp-trigger.active {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: #ffd700;
+  color: #ffd700;
+  filter: grayscale(0);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+  transform: scale(1.1);
+}
+
 .btn-icon-delete {
   background: none;
   border: none;
@@ -777,4 +882,62 @@ button.btn-primary:hover {
   color: #000;
   box-shadow: 0 0 20px var(--neon-green);
   transform: scale(1.15) rotate(10deg);
+}
+
+@media print {
+
+  .no-print,
+  .tabs-nav,
+  .sub-tabs-nav,
+  .theme-selector-container,
+  .btn-primary,
+  .btn-delete,
+  .btn-mini-delete,
+  .btn-mvp-trigger {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .glass-pane {
+    background: white !important;
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    color: black !important;
+    backdrop-filter: none !important;
+  }
+
+  .standings-table th {
+    background: #f4f4f4 !important;
+    color: black !important;
+  }
+
+  .standings-table td {
+    border-bottom: 1px solid #eee !important;
+    color: black !important;
+  }
+
+  .modal-overlay {
+    position: static !important;
+    background: none !important;
+    padding: 0 !important;
+  }
+
+  .modal-content {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: black !important;
+    text-shadow: none !important;
+  }
 }
